@@ -1,0 +1,15 @@
+# general requirement module / persyaratan umum modul yang harus di-instal
+moviepy
+pytube
+
+
+# Lyrics transcriber by whisper / Penulis lirik otomatis oleh whisper
+stable-ts
+
+# Vocal remover by Facebook's Demucs / Penghilang suara menggunakan Demucs oleh Facebook
+demucs
+
+#pytorch
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch==2.2.0+cu118
+torchvision==0.17.0+cu118
