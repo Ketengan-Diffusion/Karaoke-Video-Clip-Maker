@@ -1,6 +1,9 @@
 # Ketengan-Labs present Karaoke Video Clip Maker
 
-![ScreenCap.png](ScreenCap.png)
+<p align="center">
+  <img src="https://github.com/Ketengan-Diffusion/Karaoke-Video-Clip-Maker/blob/main/ScreenCap.png?raw=true" />
+</p>
+
 
 A software to make a Karaoke Video with flowing lyrics and separated and user choosen audio between intrumental only and original audio with UI for easy interfacing. The output video is processed video with flowing lyrics and two audio in one video, first one is instrument only audio with no vocal and second audio is the original audio from the source
 
