@@ -119,7 +119,7 @@ def generate_karaoke_subtitles(audio_path, output_path, model_name, status_callb
     modify_model(model)
     result = model.transcribe(audio_path, suppress_silence=True, vad=True, demucs=True, ts_num=16)
 
-     # Fix timestamp format in the temporary .ass file / Penyesuaian format "timestamp" di file .ass sementara
+    # Fix timestamp format in the temporary .ass file / Penyesuaian format "timestamp" di file .ass sementara
     temp_ass_path = os.path.join(os.path.dirname(output_path), "temp.ass")
     result.to_ass(temp_ass_path)
 
@@ -128,8 +128,8 @@ def generate_karaoke_subtitles(audio_path, output_path, model_name, status_callb
 
     timestamp_pattern = re.compile(r'(?:(\d+):)?(\d+):(\d+)\.(\d+)')
 
-    # Function to convert Whisper's timestamp format to ASS format / Fungsi untu mengubah format waktu dari Whisper's ke format yang didukung file .ass
     def convert_timestamp(match):
+    # Function to convert Whisper's timestamp format to ASS format / Fungsi untu mengubah format waktu dari Whisper's ke format yang didukung file .ass
         hours = match.group(1) or "0"
         minutes = int(match.group(2))
         seconds = int(match.group(3))
@@ -152,6 +152,7 @@ def generate_karaoke_subtitles(audio_path, output_path, model_name, status_callb
 def merge_audio_video(video_path, audio_path, temp_ass_path, output_path, overwrite, status_callback):
     # Convert command formating into ffmpeg acceptable format for filtered subtitle / Merubah format perintah ke format yang dapat diterima oleh ffmpeg untuk subtitle yang memiliki efek
     escaped_temp_ass_path = temp_ass_path.replace("\\", "/").replace(":", "\\:")
+
     # Command construction for ffmpeg / Format perintah untuk ffmpeg
     command = [
         'ffmpeg',
@@ -199,6 +200,19 @@ class KaraokeApp:
         self.use_youtube_checkbox = tk.Checkbutton(self.frame, text="Use YouTube source instead", variable=self.use_youtube_var, command=self.toggle_youtube_source)
         self.use_youtube_checkbox.pack()
 
+        self.quality_var = tk.StringVar(value="low")
+        self.quality_frame = tk.Frame(self.frame)
+        self.quality_label = tk.Label(self.quality_frame, text="Select Quality:")
+        self.quality_low = tk.Radiobutton(self.quality_frame, text="Low", variable=self.quality_var, value="low")
+        self.quality_hd = tk.Radiobutton(self.quality_frame, text="HD", variable=self.quality_var, value="hd")
+        self.quality_uhd = tk.Radiobutton(self.quality_frame, text="UHD", variable=self.quality_var, value="uhd")
+        self.quality_label.pack(side=tk.LEFT)
+        self.quality_low.pack(side=tk.LEFT)
+        self.quality_hd.pack(side=tk.LEFT)
+        self.quality_uhd.pack(side=tk.LEFT)
+        self.quality_frame.pack(pady=10)
+        self.quality_frame.pack_forget()
+
         tk.Label(self.frame, text="Output Directory:").pack()
         self.output_dir_entry = tk.Entry(self.frame, width=50)
         self.output_dir_entry.pack()
@@ -214,19 +228,14 @@ class KaraokeApp:
         self.correct_lyrics_checkbox = tk.Checkbutton(self.frame, text="Correct lyrics before merging?", variable=self.correct_lyrics_var, command=self.toggle_lyrics_editing)
         self.correct_lyrics_checkbox.pack()
 
-        self.lyrics_editor = scrolledtext.ScrolledText(self.frame, width=80, height=20)
-        self.lyrics_editor.pack(pady=10)
-        self.lyrics_editor.pack_forget()
-
-        self.save_lyrics_btn = tk.Button(self.frame, text="Save and Continue to Merging", command=self.save_lyrics)
-        self.save_lyrics_btn.pack(pady=10)
-        self.save_lyrics_btn.pack_forget()
+        self.lyrics_editor = scrolledtext.ScrolledText(self.frame, wrap=tk.WORD, width=60, height=20)
+        self.save_lyrics_btn = tk.Button(self.frame, text="Save and Continue", command=self.save_lyrics)
 
         self.start_btn = tk.Button(self.frame, text="Start Processing", command=self.start_processing)
-        self.start_btn.pack(pady=20)
+        self.start_btn.pack(pady=10)
 
         self.stop_btn = tk.Button(self.frame, text="Stop Processing", command=self.stop_processing, state=tk.DISABLED)
-        self.stop_btn.pack()
+        self.stop_btn.pack(pady=10)
 
         self.status_label = tk.Label(self.frame, text="", fg='blue')
         self.status_label.pack(pady=10)
@@ -250,8 +259,10 @@ class KaraokeApp:
     def toggle_youtube_source(self):
         if self.use_youtube_var.get():
             self.video_path_entry.config(state=tk.NORMAL)
+            self.quality_frame.pack(pady=10)
         else:
             self.video_path_entry.config(state=tk.NORMAL)
+            self.quality_frame.pack_forget()
 
     def toggle_lyrics_editing(self):
         if self.correct_lyrics_var.get():
@@ -318,7 +329,24 @@ class KaraokeApp:
         self.update_status("Downloading YouTube video...")
         try:
             yt = YouTube(url)
-            stream = yt.streams.filter(file_extension='mp4').first()
+            if self.quality_var.get() == "uhd":
+                stream = yt.streams.filter(progressive=True, res="2160p", file_extension='mp4').first()
+                if not stream:
+                    stream = yt.streams.filter(progressive=True, res="1440p", file_extension='mp4').first()
+                    if not stream:
+                        stream = yt.streams.filter(progressive=True, res="1080p", file_extension='mp4').first()
+            elif self.quality_var.get() == "hd":
+                stream = yt.streams.filter(progressive=True, res="1080p", file_extension='mp4').first()
+                if not stream:
+                    stream = yt.streams.filter(progressive=True, res="720p", file_extension='mp4').first()
+            else:
+                stream = yt.streams.filter(progressive=True, res="720p", file_extension='mp4').first()
+                if not stream:
+                    stream = yt.streams.filter(progressive=True, res="480p", file_extension='mp4').first()
+
+            if stream is None:
+                raise Exception("Desired quality stream not available, and no fallback quality found.")
+
             output_path = stream.download(output_path=output_dir, filename='input_video.mp4')
             print(f"Downloaded video to: {output_path}")
             return output_path
